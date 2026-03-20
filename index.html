@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UserBase — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0e12;
+      --surface: #14161d;
+      --surface2: #1c1f2a;
+      --border: #252836;
+      --accent: #e8ff47;
+      --accent2: #7b61ff;
+      --danger: #ff4d6d;
+      --success: #39d98a;
+      --text: #f0f0f5;
+      --muted: #6b7090;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+      --display: 'Syne', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-dot { color: var(--accent); }
+
+    .header-meta {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* BUG #4 (hard): user count never updates after deletion */
+    #header-count { color: var(--accent); font-weight: 500; }
+
+    /* MAIN LAYOUT */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 40px;
+    }
+
+    .page-title {
+      font-family: var(--display);
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+
+    .page-sub {
+      color: var(--muted);
+      font-size: 14px;
+      font-family: var(--mono);
+      margin-bottom: 32px;
+    }
+
+    /* TOOLBAR */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px 10px 40px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-wrap input:focus { border-color: var(--accent2); }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d0e12;
+    }
+
+    .btn-primary:hover { background: #d4e832; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { border-color: var(--accent2); color: var(--text); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid transparent;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .btn-danger:hover { background: rgba(255,77,109,0.1); border-color: var(--danger); }
+
+    .btn-edit {
+      background: transparent;
+      color: var(--accent2);
+      border: 1px solid transparent;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .btn-edit:hover { background: rgba(123,97,255,0.1); border-color: var(--accent2); }
+
+    /* TABLE */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      padding: 14px 20px;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    th:hover { color: var(--text); }
+
+    .sort-indicator { margin-left: 4px; }
+
+    td {
+      padding: 16px 20px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: rgba(255,255,255,0.015); }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .user-name { font-weight: 500; }
+    .user-id { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-family: var(--mono);
+      font-weight: 500;
+    }
+
+    .badge-admin { background: rgba(123,97,255,0.15); color: var(--accent2); border: 1px solid rgba(123,97,255,0.3); }
+    .badge-editor { background: rgba(232,255,71,0.1); color: var(--accent); border: 1px solid rgba(232,255,71,0.25); }
+    .badge-viewer { background: rgba(107,112,144,0.15); color: var(--muted); border: 1px solid var(--border); }
+
+    .status-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .dot-active { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .dot-inactive { background: var(--muted); }
+
+    .actions-cell { display: flex; gap: 4px; }
+
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-state h3 { font-family: var(--display); color: var(--text); margin-bottom: 8px; }
+
+    /* TOAST */
+    #toast-container {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 999;
+    }
+
+    .toast {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--success);
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-size: 14px;
+      min-width: 240px;
+      animation: slideIn 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toast.error { border-left-color: var(--danger); }
+
+    @keyframes slideIn {
+      from { transform: translateX(60px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* MODAL */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 460px;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal h2 {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 7px;
+    }
+
+    input[type="text"], input[type="email"], select.form-select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    select.form-select:focus { border-color: var(--accent2); }
+
+    .field-error {
+      color: var(--danger);
+      font-size: 12px;
+      margin-top: 5px;
+      font-family: var(--mono);
+      display: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 28px;
+    }
+
+    /* CONFIRM MODAL */
+    .confirm-text { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 8px; }
+    .confirm-name { color: var(--danger); font-weight: 600; }
+
+    /* STATS BAR */
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 22px;
+      flex: 1;
+    }
+
+    .stat-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: var(--display);
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .page-btns { display: flex; gap: 6px; }
+
+    .page-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .page-btn.active { background: var(--accent2); border-color: var(--accent2); color: white; }
+
+    @media (max-width: 700px) {
+      main { padding: 20px; }
+      header { padding: 0 20px; }
+      .stats-bar { flex-wrap: wrap; }
+      th:nth-child(3), td:nth-child(3),
+      th:nth-child(5), td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    UserBase<span class="logo-dot">.</span>
+  </div>
+  <!-- BUG #4 (hard): Count is set once on load, never updated after delete/add -->
+  <div class="header-meta">v1.2.0 &nbsp;·&nbsp; <span id="header-count">0</span> users registered</div>
+</header>
+
+<main>
+  <div class="page-title">User Management</div>
+  <div class="page-sub">// admin.panel — manage accounts, roles &amp; permissions</div>
+
+  <!-- Stats bar — BUG #4: stat cards also don't update after delete -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active</div>
+      <div class="stat-value" id="stat-active">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Admins</div>
+      <div class="stat-value" id="stat-admins">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Inactive</div>
+      <div class="stat-value" id="stat-inactive">—</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Search users by name or email…" oninput="renderTable()" />
+    </div>
+    <select id="role-filter" onchange="renderTable()">
+      <option value="">All Roles</option>
+      <option value="Admin">Admin</option>
+      <option value="Editor">Editor</option>
+      <option value="Viewer">Viewer</option>
+    </select>
+    <select id="sort-select" onchange="renderTable()">
+      <option value="name">Sort: Name</option>
+      <option value="date">Sort: Date Added</option>
+      <option value="role">Sort: Role</option>
+    </select>
+    <button class="btn btn-primary" onclick="openCreateModal()">＋ Add User</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="setSort('name')">User <span class="sort-indicator" id="sort-name">↕</span></th>
+          <th onclick="setSort('email')">Email <span class="sort-indicator" id="sort-email"></span></th>
+          <th onclick="setSort('role')">Role <span class="sort-indicator" id="sort-role"></span></th>
+          <th>Status</th>
+          <th onclick="setSort('date')">Created <span class="sort-indicator" id="sort-date"></span></th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="user-tbody"></tbody>
+    </table>
+    <div class="pagination">
+      <span id="pagination-info">Showing — of — users</span>
+      <div class="page-btns" id="page-btns"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Create / Edit Modal -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="handleModalBgClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2 id="modal-title">Add User</h2>
+    <div class="form-group">
+      <label for="f-name">Full Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Jane Smith" />
+      <div class="field-error" id="err-name">Name is required</div>
+    </div>
+    <div class="form-group">
+      <label for="f-email">Email Address</label>
+      <input type="email" id="f-email" placeholder="e.g. jane@company.com" />
+      <!-- BUG #2 (hard): email validation is done client-side and accepts "user@" -->
+      <div class="field-error" id="err-email">Enter a valid email</div>
+    </div>
+    <div class="form-group">
+      <label for="f-role">Role</label>
+      <select id="f-role" class="form-select">
+        <option value="Viewer">Viewer</option>
+        <option value="Editor">Editor</option>
+        <option value="Admin">Admin</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="f-status">Status</label>
+      <select id="f-status" class="form-select">
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="confirm-bg" class="modal-bg" style="display:none" onclick="closeConfirm()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:380px">
+    <h2>Delete User?</h2>
+    <p class="confirm-text">
+      This will permanently remove <span class="confirm-name" id="confirm-user-name"></span> from the system. This action cannot be undone.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" style="border:1px solid var(--danger)" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA STORE ────────────────────────────────────────────────────────────────
+
+const AVATARS_COLORS = [
+  ['#7b61ff','#1a1530'], ['#e8ff47','#1a1c00'], ['#ff4d6d','#2a0010'],
+  ['#39d98a','#00180d'], ['#ff9f43','#1a0d00'], ['#54a0ff','#001020']
+];
+
+let users = [
+  { id: 'u001', name: 'Alice Johnson',   email: 'alice@acme.com',       role: 'Admin',  status: 'Active',   created: '2024-01-15' },
+  { id: 'u002', name: 'bob martinez',    email: 'bob@acme.com',         role: 'Editor', status: 'Active',   created: '2024-02-03' },
+  { id: 'u003', name: 'Carol White',     email: 'carol@acme.com',       role: 'Viewer', status: 'Inactive', created: '2024-02-20' },
+  { id: 'u004', name: 'David Kim',       email: 'david@acme.com',       role: 'Editor', status: 'Active',   created: '2024-03-11' },
+  { id: 'u005', name: 'Eva Nakamura',    email: 'eva@acme.com',         role: 'Admin',  status: 'Active',   created: '2024-04-01' },
+  { id: 'u006', name: 'frank Thompson',  email: 'frank@acme.com',       role: 'Viewer', status: 'Active',   created: '2024-04-18' },
+  { id: 'u007', name: 'Grace Lee',       email: 'grace@acme.com',       role: 'Editor', status: 'Active',   created: '2024-05-09' },
+  { id: 'u008', name: 'Henry Okafor',    email: 'henry@acme.com',       role: 'Viewer', status: 'Inactive', created: '2024-05-22' },
+  { id: 'u009', name: 'Iris Patel',      email: 'iris@acme.com',        role: 'Admin',  status: 'Active',   created: '2024-06-14' },
+  { id: 'u010', name: 'James Rivera',    email: 'james@acme.com',       role: 'Viewer', status: 'Active',   created: '2024-07-01' },
+  { id: 'u011', name: 'Karen Singh',     email: 'karen@acme.com',       role: 'Editor', status: 'Active',   created: '2024-07-30' },
+  { id: 'u012', name: 'Leo Dupont',      email: 'leo@acme.com',         role: 'Viewer', status: 'Inactive', created: '2024-08-15' },
+];
+
+let editingId = null;
+let deleteTargetId = null;
+let currentPage = 1;
+const PAGE_SIZE = 8;
+let sortKey = 'name';
+let sortDir = 1;
+
+// BUG #4 (hard): Stats and header count set once and NEVER updated after mutations
+function initStats() {
+  const total = users.length;
+  const active = users.filter(u => u.status === 'Active').length;
+  const admins = users.filter(u => u.role === 'Admin').length;
+  const inactive = users.filter(u => u.status === 'Inactive').length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-admins').textContent = admins;
+  document.getElementById('stat-inactive').textContent = inactive;
+  document.getElementById('header-count').textContent = total;
+}
+
+// ─── SORTING ───────────────────────────────────────────────────────────────────
+
+function setSort(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = 1; }
+  document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
+  const el = document.getElementById('sort-' + key);
+  if (el) el.textContent = sortDir === 1 ? ' ↑' : ' ↓';
+  renderTable();
+}
+
+function getSorted(arr) {
+  return [...arr].sort((a, b) => {
+    let av = a[sortKey] || '';
+    let bv = b[sortKey] || '';
+    // BUG #5 (hard): sort uses raw string comparison — uppercase letters sort before lowercase
+    // e.g. "bob" comes AFTER "Carol" because 'C' < 'b' in ASCII
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+}
+
+// ─── RENDERING ─────────────────────────────────────────────────────────────────
+
+function getAvatarStyle(name) {
+  const idx = name.charCodeAt(0) % AVATARS_COLORS.length;
+  const [bg, fg] = AVATARS_COLORS[idx];
+  return `background:${bg};color:${fg}`;
+}
+
+function getInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function renderTable() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const roleFilter = document.getElementById('role-filter').value;
+
+  let filtered = users.filter(u => {
+    const matchSearch = u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
+    const matchRole = !roleFilter || u.role === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  const sorted = getSorted(filtered);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const pageSlice = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const tbody = document.getElementById('user-tbody');
+
+  if (pageSlice.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <h3>No users found</h3>
+      <p>Try adjusting your search or filter.</p>
+    </div></td></tr>`;
+  } else {
+    tbody.innerHTML = pageSlice.map((u, idx) => {
+      const roleBadge = u.role === 'Admin' ? 'badge-admin' : u.role === 'Editor' ? 'badge-editor' : 'badge-viewer';
+      // BUG #6 (hard): Created date can display "Invalid Date" if date string is slightly malformed
+      const dateStr = new Date(u.created + 'T00:00:00').toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+      return `<tr>
+        <td>
+          <div class="user-cell">
+            <div class="avatar" style="${getAvatarStyle(u.name)}">${getInitials(u.name)}</div>
+            <div>
+              <div class="user-name">${escHtml(u.name)}</div>
+              <div class="user-id">${u.id}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-family:var(--mono);font-size:13px">${escHtml(u.email)}</td>
+        <td><span class="badge ${roleBadge}">${u.role}</span></td>
+        <td>
+          <span class="status-dot">
+            <span class="dot ${u.status === 'Active' ? 'dot-active' : 'dot-inactive'}"></span>
+            ${u.status}
+          </span>
+        </td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${dateStr}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn btn-edit" onclick="openEditModal('${u.id}')">Edit</button>
+            <!-- BUG #1 (easy/medium): delete passes 'idx' (page-relative index) not user ID -->
+            <button class="btn btn-danger" onclick="openDeleteConfirm(${idx})">Delete</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('pagination-info').textContent =
+    `Showing ${pageSlice.length} of ${sorted.length} users`;
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  const container = document.getElementById('page-btns');
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+  container.innerHTML = html;
+}
+
+function goPage(p) {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const roleFilter = document.getElementById('role-filter').value;
+  const filtered = users.filter(u => {
+    return (u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search))
+      && (!roleFilter || u.role === roleFilter);
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  currentPage = Math.max(1, Math.min(p, totalPages));
+  renderTable();
+}
+
+// ─── CREATE / EDIT ─────────────────────────────────────────────────────────────
+
+function openCreateModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add New User';
+  document.getElementById('modal-save-btn').textContent = 'Create User';
+  clearForm();
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+
+function openEditModal(id) {
+  const user = users.find(u => u.id === id);
+  if (!user) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit User';
+  document.getElementById('modal-save-btn').textContent = 'Save Changes';
+  document.getElementById('f-name').value = user.name;
+  document.getElementById('f-email').value = user.email;
+  // BUG #3 (hard): role and status are NOT pre-populated in edit form
+  // The dropdowns always reset to their default option (Viewer / Active)
+  // so saving always overwrites with wrong values unless the user re-selects
+  document.getElementById('f-role').value = 'Viewer';    // should be: user.role
+  document.getElementById('f-status').value = 'Active';  // should be: user.status
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+
+function saveUser() {
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const role = document.getElementById('f-role').value;
+  const status = document.getElementById('f-status').value;
+
+  let valid = true;
+
+  // BUG #2 easy: name field — empty string passes if it's just spaces (trimmed above), but...
+  if (!name) {
+    document.getElementById('err-name').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('err-name').style.display = 'none';
+  }
+
+  // BUG #2 hard: email validation only checks for '@' presence, not a full valid format
+  // Accepts "user@", "@domain.com", "notanemail@" etc.
+  if (!email || !email.includes('@')) {
+    document.getElementById('err-email').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('err-email').style.display = 'none';
+  }
+
+  // BUG #7 (easy): success toast fires BEFORE validation check actually stops execution
+  // Actually here valid is checked — but the toast shows "Saved!" even on duplicate email
+  const duplicate = users.find(u => u.email === email && u.id !== editingId);
+
+  if (!valid) return;
+
+  // BUG #7 (easy/medium): No duplicate email check — shows success even for duplicates
+  // The duplicate const is computed above but never used to block saving
+  if (editingId) {
+    const idx = users.findIndex(u => u.id === editingId);
+    users[idx] = { ...users[idx], name, email, role, status };
+    showToast('✓ User updated successfully');
+  } else {
+    const newId = 'u' + String(users.length + 1).padStart(3, '0');
+    // BUG #8 (hard): new user ID is based on array length, so after a delete + add
+    // two users can end up with the same ID (e.g. delete u012, add → also u012)
+    users.push({ id: newId, name, email, role, status, created: todayStr() });
+    showToast('✓ User created successfully');
+  }
+
+  closeModal();
+  renderTable();
+  // Note: initStats() is NOT called here — stat cards stay stale (BUG #4)
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ─── DELETE ────────────────────────────────────────────────────────────────────
+
+function openDeleteConfirm(pageRelativeIdx) {
+  // BUG #1 (easy): We store the page-relative index instead of the user ID.
+  // When paginated or filtered, this will delete the wrong user on confirmDelete().
+  deleteTargetId = pageRelativeIdx; // should be a real user ID
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const roleFilter = document.getElementById('role-filter').value;
+  const filtered = getSorted(users.filter(u =>
+    (u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search))
+    && (!roleFilter || u.role === roleFilter)
+  ));
+  const pageSlice = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+  // The confirm modal SHOWS the correct name — so the mismatch is invisible to the user
+  const displayUser = pageSlice[pageRelativeIdx];
+  document.getElementById('confirm-user-name').textContent = displayUser ? displayUser.name : 'this user';
+  document.getElementById('confirm-bg').style.display = 'flex';
+}
+
+function confirmDelete() {
+  // BUG #1 consequence: if filters/pagination are active, wrong index is used
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const roleFilter = document.getElementById('role-filter').value;
+  const filtered = getSorted(users.filter(u =>
+    (u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search))
+    && (!roleFilter || u.role === roleFilter)
+  ));
+  const pageSlice = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+  const targetUser = pageSlice[deleteTargetId];
+  if (!targetUser) { closeConfirm(); return; }
+  users = users.filter(u => u.id !== targetUser.id);
+  closeConfirm();
+  showToast('✓ User deleted');
+  renderTable();
+  // Note: initStats() is NOT called here (BUG #4 — stats not updated)
+}
+
+// ─── MODAL UTILS ───────────────────────────────────────────────────────────────
+
+function clearForm() {
+  ['f-name','f-email'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-role').value = 'Viewer';
+  document.getElementById('f-status').value = 'Active';
+  ['err-name','err-email'].forEach(id => document.getElementById(id).style.display = 'none');
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none';
+  editingId = null;
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-bg').style.display = 'none';
+  deleteTargetId = null;
+}
+
+function handleModalBgClick(e) {
+  if (e.target === document.getElementById('modal-bg')) closeModal();
+}
+
+// ─── TOAST ─────────────────────────────────────────────────────────────────────
+
+function showToast(msg, isError = false) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.textContent = msg;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ─── ESCAPE HTML ───────────────────────────────────────────────────────────────
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── KEYBOARD ──────────────────────────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeConfirm(); }
+});
+
+// ─── INIT ──────────────────────────────────────────────────────────────────────
+
+initStats();
+renderTable();
+</script>
+</body>
+</html>
