@@ -734,7 +734,7 @@ function renderTable() {
         <td>
           <div class="actions-cell">
             <button class="btn btn-edit" onclick="openEditModal('${u.id}')">Edit</button>
-            <!-- BUG #1 (easy/medium): delete passes 'idx' (page-relative index) not user ID -->
+            <!-- BUG: passes page-relative idx, not user ID -->
             <button class="btn btn-danger" onclick="openDeleteConfirm(${idx})">Delete</button>
           </div>
         </td>
@@ -853,10 +853,12 @@ function todayStr() {
 
 // ─── DELETE ────────────────────────────────────────────────────────────────────
 
-function openDeleteConfirm(pageRelativeIdx) {
-  // BUG #1 (easy): We store the page-relative index instead of the user ID.
-  // When paginated or filtered, this will delete the wrong user on confirmDelete().
-  deleteTargetId = pageRelativeIdx; // should be a real user ID
+function openDeleteConfirm(pageIdx) {
+  // BUG: pageIdx is position on screen (0,1,2...) — confirm shows correct name
+  // because we look it up from the page slice here, masking the real problem.
+  // But confirmDelete() uses this index directly against the global users array,
+  // so it deletes the wrong user when filters or sorting are active.
+  deleteTargetId = pageIdx;
   const search = document.getElementById('search-input').value.toLowerCase();
   const roleFilter = document.getElementById('role-filter').value;
   const filtered = getSorted(users.filter(u =>
@@ -864,28 +866,20 @@ function openDeleteConfirm(pageRelativeIdx) {
     && (!roleFilter || u.role === roleFilter)
   ));
   const pageSlice = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
-  // The confirm modal SHOWS the correct name — so the mismatch is invisible to the user
-  const displayUser = pageSlice[pageRelativeIdx];
+  const displayUser = pageSlice[pageIdx];
   document.getElementById('confirm-user-name').textContent = displayUser ? displayUser.name : 'this user';
   document.getElementById('confirm-bg').style.display = 'flex';
 }
 
 function confirmDelete() {
-  // BUG #1 consequence: if filters/pagination are active, wrong index is used
-  const search = document.getElementById('search-input').value.toLowerCase();
-  const roleFilter = document.getElementById('role-filter').value;
-  const filtered = getSorted(users.filter(u =>
-    (u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search))
-    && (!roleFilter || u.role === roleFilter)
-  ));
-  const pageSlice = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
-  const targetUser = pageSlice[deleteTargetId];
-  if (!targetUser) { closeConfirm(); return; }
-  users = users.filter(u => u.id !== targetUser.id);
+  // BUG: splices users[pageIdx] — but pageIdx is 0-7 (screen position).
+  // Without filters this accidentally works. With filters/sort active,
+  // it deletes whatever user happens to sit at that index in the original array.
+  if (deleteTargetId === null || deleteTargetId === undefined) { closeConfirm(); return; }
+  users.splice(deleteTargetId, 1);
   closeConfirm();
   showToast('✓ User deleted');
   renderTable();
-  // Note: initStats() is NOT called here (BUG #4 — stats not updated)
 }
 
 // ─── MODAL UTILS ───────────────────────────────────────────────────────────────
